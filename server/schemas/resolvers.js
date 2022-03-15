@@ -13,31 +13,35 @@ const resolvers = {
 
 				return userData;
 			}
-
 			throw new AuthenticationError("Not logged in");
-		},
-		thoughts: async (parent, { username }) => {
-			const params = username ? { username } : {};
-			return Thought.find(params).sort({ createdAt: -1 });
-		},
-		thought: async (parent, { _id }) => {
-			return Thought.findOne({ _id });
 		},
 		// get all users
 		users: async () => {
-			return User.find()
+			return;
+			User.find()
+				// don't include user password
 				.select("-__v -password")
 				.populate("friends")
 				.populate("thoughts");
 		},
-		// get user by username
+		//get by username
 		user: async (parent, { username }) => {
 			return User.findOne({ username })
 				.select("-__v -password")
 				.populate("friends")
 				.populate("thoughts");
 		},
+		// get all thoughts
+		thoughts: async (parent, { username }) => {
+			const params = username ? { username } : {};
+			return Thought.find(params).sort({ createdAt: -1 });
+		},
+		// get thought by id
+		thought: async (parent, { _id }) => {
+			return Thought.findOne({ _id });
+		},
 	},
+
 	Mutation: {
 		addUser: async (parent, args) => {
 			const user = await User.create(args);
@@ -49,7 +53,7 @@ const resolvers = {
 			const user = await User.findOne({ email });
 
 			if (!user) {
-				throw new AuthenticationError("Incorrect credentials");
+				throw new AuthenticationError("Incorrect Credentials");
 			}
 
 			const correctPw = await user.isCorrectPassword(password);
@@ -67,6 +71,7 @@ const resolvers = {
 					...args,
 					username: context.user.username,
 				});
+
 				await User.findByIdAndUpdate(
 					{ _id: context.user._id },
 					{ $push: { thoughts: thought._id } },
@@ -80,7 +85,7 @@ const resolvers = {
 		},
 		addReaction: async (parent, { thoughtId, reactionBody }, context) => {
 			if (context.user) {
-				const updatedThought = await Thought.findOneAndUpdate(
+				const updatedThought = await Thought.findByIdAndUpdate(
 					{ _id: thoughtId },
 					{
 						$push: {
